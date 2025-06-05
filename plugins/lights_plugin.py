@@ -1,4 +1,8 @@
+import logging
 from semantic_kernel.functions import kernel_function
+
+
+logging.getLogger("kernel").setLevel(logging.DEBUG)
 
 
 class LightsPlugin:
@@ -15,6 +19,9 @@ class LightsPlugin:
     def get_state(
         self,
     ) -> str:
+        
+        print("Getting the state of all lights")
+        
         """Gets a list of lights and their current state."""
         return self.lights
 
@@ -27,6 +34,9 @@ class LightsPlugin:
         id: int,
         is_on: bool,
     ) -> str:
+        
+        print(f"Changing state of light with id '{id}' to '{is_on}'")
+
         """Changes the state of the light."""
         for light in self.lights:
             if light["id"] == id:
