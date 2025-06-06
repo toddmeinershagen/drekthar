@@ -5,11 +5,19 @@ import os
 
 from dotenv import load_dotenv
 
-from semantic_kernel import Kernel
+
+from semantic_kernel.connectors.ai.open_ai import (
+    AzureAISearchDataSource,
+    AzureChatCompletion,
+    AzureChatPromptExecutionSettings,
+    ExtraBody,
+)
+from semantic_kernel.connectors.memory.azure_cognitive_search.azure_ai_search_settings import AzureAISearchSettings
+
+from semantic_kernel.agents import ChatCompletionAgent
 from semantic_kernel.utils.logging import setup_logging
 from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion
 from semantic_kernel.connectors.ai.function_choice_behavior import FunctionChoiceBehavior
-from semantic_kernel.connectors.ai.chat_completion_client_base import ChatCompletionClientBase
 from semantic_kernel.contents.chat_history import ChatHistory
 from semantic_kernel.functions.kernel_arguments import KernelArguments
 
@@ -26,64 +34,48 @@ load_dotenv()
 
 
 async def main():
-    # Initialize the kernel
-    kernel = Kernel()
 
-    # Add Azure OpenAI chat completion
-    chat_completion = AzureChatCompletion(
-        deployment_name = os.getenv("DEPLOYMENT_NAME"),
-        api_key=os.getenv("API_KEY"),
-        base_url=os.getenv("BASE_URL"),  # https://{resource}.openai.azure.com/openai/deployments/{deployment}/chat/completions?api-version={version}
-    )
-    kernel.add_service(chat_completion)
-
-    # Set the logging level for  semantic_kernel.kernel to DEBUG.
     setup_logging()
     logging.getLogger("kernel").setLevel(logging.DEBUG)
 
-    # Add a plugin (the LightsPlugin class is defined below)
-    kernel.add_plugin(
-        LightsPlugin(),
-        plugin_name="Lights",
+    settings = AzureChatPromptExecutionSettings()
+    settings.function_choice_behavior = FunctionChoiceBehavior.Auto()
+
+    chat_completion = AzureChatCompletion(
+        deployment_name = os.getenv("DEPLOYMENT_NAME"),
+        api_key=os.getenv("API_KEY"),
+        endpoint=os.getenv("ENDPOINT"),
+        api_version="2025-04-01-preview"
     )
 
-    kernel.add_plugin(
-        AutomationPlugin(),
-        plugin_name="Automation",
+    agent = ChatCompletionAgent(
+        service=chat_completion,
+        name="Assistant",
+        instructions="You are a helpful assistant.",
+        plugins=[LightsPlugin(), AutomationPlugin()],
+        arguments=KernelArguments(settings)
     )
-
-    # Enable planning
-    execution_settings = AzureChatPromptExecutionSettings()
-    execution_settings.function_choice_behavior = FunctionChoiceBehavior.Auto()
 
     # Create a history of the conversation
     history = ChatHistory()
+    history.add_system_message("I am an AI assistant here to answer your questions.")
 
     # Initiate a back-and-forth chat
     userInput = None
     while True:
-        # Collect user input
         userInput = input("User > ")
 
-        # Terminate the loop if the user says "exit"
         if userInput == "exit":
             break
 
-        # Add user input to the history
         history.add_user_message(userInput)
 
-        # Get the response from the AI
-        result = await chat_completion.get_chat_message_content(
-            chat_history=history,
-            settings=execution_settings,
-            kernel=kernel,
-        )
+        response = await agent.get_response(messages=history.messages)
 
-        # Print the results
-        print("Assistant > " + str(result))
+        print(f"Assistant > {response.content}")
 
-        # Add the message from the agent to the chat history
-        history.add_message(result)
+        history.add_message(response.message)
+
 
 # Run the main function
 if __name__ == "__main__":
