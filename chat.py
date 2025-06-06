@@ -17,6 +17,7 @@ from semantic_kernel.connectors.ai.open_ai.prompt_execution_settings.azure_chat_
     AzureChatPromptExecutionSettings,
 )
 
+from plugins.automation_plugin import AutomationPlugin
 from plugins.lights_plugin import LightsPlugin
 
 
@@ -44,6 +45,11 @@ async def main():
     kernel.add_plugin(
         LightsPlugin(),
         plugin_name="Lights",
+    )
+
+    kernel.add_plugin(
+        AutomationPlugin(),
+        plugin_name="Automation",
     )
 
     # Enable planning
