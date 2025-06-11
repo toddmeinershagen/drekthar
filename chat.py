@@ -43,8 +43,8 @@ async def main():
 
     chat_completion = AzureChatCompletion(
         deployment_name = os.getenv("DEPLOYMENT_NAME"),
-        api_key=os.getenv("API_KEY"),
-        endpoint=os.getenv("ENDPOINT"),
+        api_key=os.getenv("LLM_API_KEY"),
+        endpoint=os.getenv("LLM_ENDPOINT"),
         api_version="2025-04-01-preview"
     )
 
